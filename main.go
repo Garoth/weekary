@@ -1,11 +1,29 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/codeskyblue/go-sh"
 )
+
+// Generates a section for a given person, with their name an weekly status
+func makeNameHeader(name string) *goquery.Selection {
+	selection := &goquery.Selection{}
+
+	nameDiv := NewElement("div", name)
+	SetAttr(nameDiv, "style", "font-size: 18px;")
+	selection = selection.AddSelection(nameDiv)
+
+	statusDiv := NewElement("div", "Working normal hours.")
+	SetAttr(statusDiv, "style", "font-size: 14px; color: rgb(121, 121, 121);")
+	selection = selection.AddSelection(statusDiv)
+
+	return selection
+}
 
 func main() {
 	file, err := os.Open("/Users/athorp/Configs/weekary/template.html")
@@ -19,15 +37,34 @@ func main() {
 	}
 
 	newDoc := goquery.CloneDocument(referenceDoc)
-	newDoc.Find("body").First().Empty()
+	body := newDoc.Find("body").First()
+	body.Empty()
 
-	log.Println("Text is", referenceDoc.Find("#testdiv").First().Text())
-	tmpHTml, err := newDoc.Find(".nothingtofind").AddNodes(NewDiv()).First().Html()
-	log.Println("div has", tmpHTml)
+	body.AppendSelection(makeNameHeader("Andrei Thorp"))
 
-	docStr, err := newDoc.Html()
+	finalHtml, err := newDoc.Html()
 	if err != nil {
 		log.Fatalln("Couldn't produce final HTML!", err)
 	}
-	log.Println("Full dom is", docStr)
+
+	// Creating temporary file, writing HTML to it, opening browser
+	temporaryFile, err := ioutil.TempFile("", "weekary-")
+	defer temporaryFile.Close()
+	if err != nil {
+		log.Fatalln("Couldn't create temporary file to write to!", err)
+	}
+
+	if _, err := temporaryFile.WriteString(finalHtml); err != nil {
+		log.Fatalln("Couldn't write HTML to temporary file!", err)
+	}
+
+	fmt.Println("Successfully generated. Filename is:")
+	fmt.Println(temporaryFile.Name())
+	fmt.Println("Opening in browser...")
+
+	command := sh.Command("open", temporaryFile.Name())
+	command.Start()
+	if err := command.Wait(); err != nil {
+		log.Fatalln("Couldn't open browser to", temporaryFile.Name(), "--", err)
+	}
 }
