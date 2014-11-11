@@ -8,6 +8,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/codeskyblue/go-sh"
+	"github.com/yosssi/gohtml"
 )
 
 // Generates a section for a given person, with their name an weekly status
@@ -54,7 +55,7 @@ func main() {
 		log.Fatalln("Couldn't create temporary file to write to!", err)
 	}
 
-	if _, err := temporaryFile.WriteString(finalHtml); err != nil {
+	if _, err := temporaryFile.WriteString(gohtml.Format(finalHtml)); err != nil {
 		log.Fatalln("Couldn't write HTML to temporary file!", err)
 	}
 
